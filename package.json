@@ -1,0 +1,21 @@
+{
+  "name": "@clusic/mysql",
+  "version": "1.0.1",
+  "description": "The mysql plugin of clusic",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/clusic/mysql.git"
+  },
+  "keywords": [
+    "mysql",
+    "clusic"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/clusic/mysql/issues"
+  },
+  "homepage": "https://github.com/clusic/mysql#readme",
+  "dependencies": {
+    "mysql": "^2.16.0"
+  }
+}
