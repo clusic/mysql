@@ -47,6 +47,7 @@ class Singleton {
   
   async commit() {
     const conn = this.conn;
+    if (!conn) return;
     await this.emit('beforeCommit');
     await new Promise((resolve, reject) => {
       conn.commit(err => {
@@ -60,6 +61,7 @@ class Singleton {
   
   async rollback() {
     const conn = this.conn;
+    if (!conn) return;
     await this.emit('beforeRollback');
     await new Promise((resolve, reject) => {
       conn.rollback(err => {
