@@ -134,15 +134,7 @@ module.exports = class MySQL {
   }
   
   async connect() {
-    if (this.pool) {
-      this.dbo = MYSQL.createPool(this.options);
-      return await new Promise((resolve, reject) => {
-        this.dbo.connect(err => {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
-    }
+    if (this.pool) return this.dbo = MYSQL.createPool(this.options);
     this.dbo = MYSQL.createConnection(this.options);
     await new Promise((resolve, reject) => {
       this.dbo.connect(err => {
