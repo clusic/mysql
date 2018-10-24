@@ -4,22 +4,30 @@ module.exports = async (app, plugin) => {
   if (!config) throw new Error('@clusic/mysql need configs');
   if (!Array.isArray(config)) config = [config];
   
-  const result = [];
+  const result = {};
   for (let i = 0; i < config.length; i++) {
     const item = config[i];
-    result.push(item.contextName);
-    const Mysql = app.context[item.contextName] = new MySQL(item.options, item.pool);
+    const Mysql = new MySQL(item.options, item.pool);
     await Mysql.connect();
+    result[item.contextName] = Mysql;
     app.bind('beforeStop', async () => await Mysql.disconnect());
   }
   
   app.use(async (ctx, next) => {
-    for (let i = 0; i < result.length; i++) {
-      ctx[result[i]].on('begin', async () => await ctx[result[i]].rollback());
-    }
+    await each((name, mysql) => {
+      const context = mysql.context();
+      Object.defineProperty(ctx, name, {
+        get() { return context }
+      });
+      context.on('begin', () => ctx.Rollback(async () => await context.rollback()));
+    });
     await next();
-    for (let j = 0; j < result.length; j++) {
-      await ctx[result[j]].commit();
-    }
+    await each(async name =>  await ctx[name].commit());
   });
+  
+  async function each(callback) {
+    for (const name in result) {
+      await callback(name, result[name]);
+    }
+  }
 };

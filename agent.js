@@ -6,8 +6,9 @@ module.exports = async (app, plugin) => {
   
   for (let i = 0; i < config.length; i++) {
     const item = config[i];
-    const Mysql = app[item.contextName] = new MySQL(item.options, false);
+    const Mysql = new MySQL(item.options, item.pool);
     await Mysql.connect();
     app.bind('stop', async () => await Mysql.disconnect());
+    app[item.contextName] = Mysql.context();
   }
 };

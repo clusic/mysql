@@ -1,12 +1,10 @@
 const MYSQL = require('mysql');
-module.exports = class MySQL {
-  constructor(options, pool) {
-    this.options = options;
-    this.pool = pool;
-    this.dbo = null;
+
+class Singleton {
+  constructor(mysql) {
     this.lifes = {};
     this.conn = null;
-    this.runtime = 0;
+    this.mysql = mysql;
   }
   
   on(name, callback) {
@@ -24,56 +22,12 @@ module.exports = class MySQL {
     }
   }
   
-  async connect() {
-    if (this.pool) {
-      this.dbo = MYSQL.createPool(this.options);
-      return await new Promise((resolve, reject) => {
-        this.dbo.connect(err => {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
-    }
-    this.dbo = MYSQL.createConnection(this.options);
-    await new Promise((resolve, reject) => {
-      this.dbo.connect(err => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-  }
-  
-  _stop(resolve) {
-    this.dbo.end(err => {
-      if (err) {
-        try{ this.dbo.destroy(); } catch(e) {}
-      }
-      resolve();
-    });
-  }
-  
-  disconnect() {
-    return new Promise(resolve => {
-      const time = Date.now();
-      const timer = setInterval(() => {
-        if (Date.now() - time > 3 * 60 * 1000) {
-          clearInterval(timer);
-          return this._stop(resolve);
-        }
-        if (this.runtime) return;
-        clearInterval(timer);
-        this._stop(resolve);
-      }, 10);
-    });
-  }
-  
   async _get() {
     if (this.conn) return this.conn;
-    if (!this.pool) return this.conn = this.dbo;
+    if (!this.mysql.pool) return this.conn = this.mysql.dbo;
     return this.conn = await new Promise((resolve, reject) => {
-      this.dbo.getConnection((err, connection) => {
+      this.mysql.dbo.getConnection((err, connection) => {
         if (err) return reject(err);
-        this.runtime++;
         resolve(connection);
       });
     });
@@ -118,8 +72,7 @@ module.exports = class MySQL {
   }
   
   release() {
-    if (this.pool && this.conn) {
-      this.runtime--;
+    if (this.mysql.pool && this.conn) {
       this.conn.release();
     }
     this.conn = null;
@@ -171,5 +124,55 @@ module.exports = class MySQL {
     }
     return (await this.exec(sql, ...values)).affectedRows;
   }
+}
+
+module.exports = class MySQL {
+  constructor(options, pool) {
+    this.options = options;
+    this.pool = pool;
+    this.dbo = null;
+  }
   
+  async connect() {
+    if (this.pool) {
+      this.dbo = MYSQL.createPool(this.options);
+      return await new Promise((resolve, reject) => {
+        this.dbo.connect(err => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    }
+    this.dbo = MYSQL.createConnection(this.options);
+    await new Promise((resolve, reject) => {
+      this.dbo.connect(err => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  }
+  
+  _stop(resolve) {
+    this.dbo.end(err => {
+      if (err) {
+        try{ this.dbo.destroy(); } catch(e) {}
+      }
+      resolve();
+    });
+  }
+  
+  disconnect() {
+    return new Promise(resolve => {
+      this.dbo.end(err => {
+        if (err) {
+          try{ this.dbo.destroy(); } catch(e) {}
+        }
+        resolve();
+      });
+    });
+  }
+  
+  context() {
+    return new Singleton(this);
+  }
 };
