@@ -19,7 +19,7 @@ module.exports = async (app, plugin) => {
       Object.defineProperty(ctx, name, {
         get() { return context }
       });
-      context.on('begin', () => ctx.Rollback(async () => await context.rollback()));
+      context.on('begin', () => ctx.onErrorCatch(async () => await context.rollback()));
     });
     await next();
     await each(async name =>  await ctx[name].commit());
